@@ -1,4 +1,4 @@
-package test;
+package com.example.android.makefile;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;

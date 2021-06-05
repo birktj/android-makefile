@@ -1,24 +1,31 @@
 SDK := /opt/android-sdk
-PLATFORM_VERSION := 29
-SDK_VERSION := 29.0.3
+PLATFORM_VERSION := 30
+SDK_VERSION := 30.0.2
 
 # See https://maven.google.com/web/index.html for list of libraries
 LIBS = androidx.core:core:1.2.0:aar \
-	androidx.activity:activity:1.1.0:aar \
-	androidx.fragment:fragment:1.2.3:aar \
-	androidx.appcompat:appcompat:1.1.0:aar \
-	androidx.appcompat:appcompat-resources:1.1.0:aar \
-	androidx.lifecycle:lifecycle-common:2.2.0:jar \
-	androidx.lifecycle:lifecycle-viewmodel:2.2.0:aar \
-	androidx.lifecycle:lifecycle-runtime:2.2.0:aar \
-	androidx.savedstate:savedstate:1.0.0:aar \
-	androidx.drawerlayout:drawerlayout:1.0.0:aar \
-	androidx.collection:collection:1.1.0:jar \
-	androidx.arch.core:core-common:2.1.0:jar \
-	androidx.vectordrawable:vectordrawable:1.1.0:aar \
-	androidx.customview:customview:1.0.0:aar
+	   androidx.activity:activity:1.1.0:aar \
+	   androidx.fragment:fragment:1.2.3:aar \
+	   androidx.appcompat:appcompat:1.1.0:aar \
+	   androidx.appcompat:appcompat-resources:1.1.0:aar \
+	   androidx.lifecycle:lifecycle-common:2.2.0:jar \
+	   androidx.lifecycle:lifecycle-viewmodel:2.2.0:aar \
+	   androidx.lifecycle:lifecycle-runtime:2.2.0:aar \
+	   androidx.savedstate:savedstate:1.0.0:aar \
+	   androidx.drawerlayout:drawerlayout:1.0.0:aar \
+	   androidx.collection:collection:1.1.0:jar \
+	   androidx.arch.core:core-common:2.1.0:jar \
+	   androidx.vectordrawable:vectordrawable:1.1.0:aar \
+	   androidx.customview:customview:1.0.0:aar
 
-PACKAGE_NAME = test
+PACKAGE_NAME = com.example.android.makefile
+SOURCE_DIR = src
+
+KEYSTORE?= keystore.jks
+
+# NOTE: DO NOT OVERRIDE THE PASSWORD HERE, instead set it as an enviroment
+# variable
+KEYSTORE_PASS?= "password"
 
 
 # Generated variables
@@ -27,7 +34,7 @@ BUILD_TOOLS = $(SDK)/build-tools/$(SDK_VERSION)
 
 PACKAGE_PATH = $(subst .,/,$(PACKAGE_NAME))
 
-kotlin_files := $(shell find src -type f -name '*.kt')
+kotlin_files := $(shell find $(SOURCE_DIR) -type f -name '*.kt')
 
 lib_package = $(word 1, $(subst :, ,$1))
 lib_name    = $(word 2, $(subst :, ,$1))
@@ -83,7 +90,7 @@ $(LIBS_AAR_R_JAVA): build/libs-gen/%: build/libs/extracted/%
 	$(BUILD_TOOLS)/aapt package -f -m -J $@ $(LIBS_RES_FLAGS) -M $</AndroidManifest.xml -I $(PLATFORM)/android.jar --auto-add-overlay
 
 build/gen/$(PACKAGE_PATH)/R.java: $(LIBS_AAR_EXTRACTED)
-	@mkdir -p build/gen/com/birk/test
+	@mkdir -p build/gen/$(PACKAGE_PATH)
 	$(BUILD_TOOLS)/aapt package -f -m -J build/gen/ -S res $(LIBS_RES_FLAGS) -M AndroidManifest.xml -I $(PLATFORM)/android.jar --auto-add-overlay
 
 build/classes: build/gen/$(PACKAGE_PATH)/R.java $(kotlin_files) $(LIBS_JAR_FILES) $(LIBS_AAR_R_JAVA)
@@ -98,14 +105,14 @@ build/apk/classes.dex: build/classes $(LIBS_JAR_FILES)
 
 build/app.apk: build/apk/classes.dex $(LIBS_AAR_EXTRACTED) $(LIBS_DOWNLOAD)
 	$(BUILD_TOOLS)/aapt package --auto-add-overlay -S res $(LIBS_RES_FLAGS) -f -m -M AndroidManifest.xml -I $(PLATFORM)/android.jar $(LIBS_INCLUDE_FLAGS) -F build/app.apk build/apk/
-	$(BUILD_TOOLS)/apksigner sign --ks keystore.jks --ks-pass "pass:password" build/app.apk	
+	$(BUILD_TOOLS)/apksigner sign --ks $(KEYSTORE) --ks-pass "pass:$(KEYSTORE_PASS)" build/app.apk	
 
 upload: build/app.apk
 	$(SDK)/platform-tools/adb install -r build/app.apk
 .PHONY: upload
 
 run: upload
-	$(SKD)/platform-tools/adb shell monkey -p com.birk.test 1
+	$(SDK)/platform-tools/adb shell monkey -p $(PACKAGE_NAME) 1
 .PHONY: run
 
 clean:
